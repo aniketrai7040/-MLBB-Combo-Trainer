@@ -1,0 +1,298 @@
+
+name: MLBB Combo Trainer APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Create Android Project
+        run: |
+          mkdir -p app/src/main/java/com/mlbb/combatrainer
+          mkdir -p app/src/main
+
+          cat > settings.gradle <<'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "MLBBComboTrainer"
+          include ':app'
+          EOF
+
+          cat > build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application' version '8.7.3' apply false
+              id 'org.jetbrains.kotlin.android' version '2.0.21' apply false
+          }
+          EOF
+
+          cat > app/build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application'
+              id 'org.jetbrains.kotlin.android'
+          }
+
+          android {
+              namespace 'com.mlbb.combatrainer'
+              compileSdk 35
+
+              defaultConfig {
+                  applicationId 'com.mlbb.combatrainer'
+                  minSdk 23
+                  targetSdk 28
+                  versionCode 1
+                  versionName '1.0'
+              }
+          }
+          EOF
+
+          cat > app/src/main/AndroidManifest.xml <<'EOF'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application
+                  android:theme="@android:style/Theme.Material.NoActionBar"
+                  android:label="MLBB Combo Trainer"
+                  android:allowBackup="false">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          cat > app/src/main/java/com/mlbb/combatrainer/MainActivity.kt <<'EOF'
+          package com.mlbb.combatrainer
+
+          import android.app.Activity
+          import android.os.Bundle
+          import android.graphics.Color
+          import android.view.Gravity
+          import android.widget.*
+
+          class MainActivity : Activity() {
+
+              private val heroes = listOf(
+                  "Gusion" to 8,
+                  "Fanny" to 8,
+                  "Ling" to 5,
+                  "Lancelot" to 5,
+                  "Hayabusa" to 5,
+                  "Chou" to 5
+              )
+
+              private val combos = mapOf(
+                  "Gusion" to listOf(
+                      "Basic Dagger Combo",
+                      "Advanced Dagger Combo",
+                      "Ultimate Reset Combo",
+                      "Burst Damage Combo",
+                      "Quick Assassination",
+                      "Airborne Follow-up",
+                      "Escape Combo",
+                      "Pro Dagger Combo"
+                  ),
+                  "Fanny" to listOf(
+                      "Basic Cable Combo",
+                      "Double Cable",
+                      "Triple Cable",
+                      "Wall-to-Wall Cable",
+                      "Tornado Strike",
+                      "Fast Burst Combo",
+                      "Escape Cable",
+                      "Advanced Cable"
+                  ),
+                  "Ling" to listOf(
+                      "Basic Blade Combo",
+                      "Ultimate Burst",
+                      "Sword Pickup Combo",
+                      "Chase Combo",
+                      "Escape Combo"
+                  ),
+                  "Lancelot" to listOf(
+                      "Basic Puncture Combo",
+                      "Skill Reset Combo",
+                      "Ultimate Burst",
+                      "Chase Combo",
+                      "Escape Combo"
+                  ),
+                  "Hayabusa" to listOf(
+                      "Basic Shadow Combo",
+                      "Ultimate Burst",
+                      "Shadow Switch Combo",
+                      "Chase Combo",
+                      "Escape Combo"
+                  ),
+                  "Chou" to listOf(
+                      "Basic Kick Combo",
+                      "Flicker Ultimate",
+                      "Knock-up Combo",
+                      "Burst Combo",
+                      "Escape Combo"
+                  )
+              )
+
+              private var selectedHero = "Gusion"
+              private lateinit var content: LinearLayout
+
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  showHome()
+              }
+
+              private fun showHome() {
+                  val root = LinearLayout(this).apply {
+                      orientation = LinearLayout.VERTICAL
+                      setPadding(20, 24, 20, 20)
+                      setBackgroundColor(Color.rgb(13, 17, 28))
+                  }
+
+                  val scroll = ScrollView(this)
+                  content = LinearLayout(this).apply {
+                      orientation = LinearLayout.VERTICAL
+                  }
+                  scroll.addView(content)
+                  root.addView(scroll)
+                  setContentView(root)
+
+                  addText(content, "MLBB COMBO TRAINER", 25, Color.WHITE)
+                  addText(content, "6 Heroes  •  36 Combo Slots", 15,
+                      Color.rgb(0, 220, 180))
+
+                  addText(content, "SELECT HERO", 18, Color.WHITE)
+
+                  heroes.forEach { hero ->
+                      addButton(content, "${hero.first}  •  ${hero.second} Combos") {
+                          selectedHero = hero.first
+                          showHero()
+                      }
+                  }
+
+                  addText(content,
+                      "Choose a hero to explore combo practice.",
+                      14, Color.LTGRAY)
+              }
+
+              private fun showHero() {
+                  val root = LinearLayout(this).apply {
+                      orientation = LinearLayout.VERTICAL
+                      setPadding(20, 24, 20, 20)
+                      setBackgroundColor(Color.rgb(13, 17, 28))
+                  }
+
+                  val scroll = ScrollView(this)
+                  content = LinearLayout(this).apply {
+                      orientation = LinearLayout.VERTICAL
+                  }
+                  scroll.addView(content)
+                  root.addView(scroll)
+                  setContentView(root)
+
+                  addButton(content, "← BACK TO HEROES") {
+                      showHome()
+                  }
+
+                  addText(content, selectedHero, 28, Color.WHITE)
+                  addText(content, "COMBO PRACTICE", 17,
+                      Color.rgb(0, 220, 180))
+
+                  combos[selectedHero]?.forEachIndexed { index, combo ->
+                      addButton(content, "${index + 1}. $combo") {
+                          showPractice(combo)
+                      }
+                  }
+              }
+
+              private fun showPractice(combo: String) {
+                  content.removeAllViews()
+                  addButton(content, "← BACK") {
+                      showHero()
+                  }
+                  addText(content, combo, 23, Color.WHITE)
+                  addText(content, "PRACTICE SEQUENCE", 17,
+                      Color.rgb(0, 220, 180))
+                  addText(content, "Skill 1  →  Skill 2  →  Ultimate  →  Basic Attack",
+                      18, Color.WHITE)
+                  addText(content,
+                      "Follow this sequence in your practice match.",
+                      14, Color.LTGRAY)
+                  addButton(content, "START PRACTICE") {
+                      addText(content, "Practice started! Follow the combo.",
+                          16, Color.GREEN)
+                  }
+              }
+
+              private fun addText(
+                  parent: LinearLayout,
+                  value: String,
+                  size: Int,
+                  color: Int
+              ) {
+                  val view = TextView(this).apply {
+                      text = value
+                      textSize = size.toFloat()
+                      setTextColor(color)
+                      setPadding(8, 14, 8, 14)
+                  }
+                  parent.addView(view)
+              }
+
+              private fun addButton(
+                  parent: LinearLayout,
+                  value: String,
+                  action: () -> Unit
+              ) {
+                  val button = Button(this).apply {
+                      text = value
+                      isAllCaps = false
+                      setTextColor(Color.WHITE)
+                      setBackgroundColor(Color.rgb(29, 57, 75))
+                      setOnClickListener { action() }
+                  }
+                  parent.addView(button)
+              }
+          }
+          EOF
+
+      - name: Build Debug APK
+        run: gradle assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MLBB-Combo-Trainer-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          
